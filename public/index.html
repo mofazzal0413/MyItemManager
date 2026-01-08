@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Items List</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <h2>My Items App</h2>
+    <nav>
+      <a href="index.html">Home</a>
+    </nav>
+    <button id="darkModeBtn">🌙</button>
+  </header>
+
+  <!-- Logout Button -->
+  <button id="logoutBtn">Logout</button>
+
+  <!-- Add Item Form -->
+  <h3>Add New Item</h3>
+  <input id="newName" placeholder="Item name" />
+  <input id="newPrice" placeholder="Price" type="number" />
+  <button id="addBtn">Add Item</button>
+
+  <!-- Search and Refresh -->
+  <h1>Items</h1>
+  <input type="text" id="searchInput" placeholder="Search items..." />
+  <button id="searchBtn">Search</button>
+  <button id="refreshBtn">Refresh List</button>
+
+  <!-- Spinner and Message Box -->
+  <div id="spinner" class="spinner hidden"></div>
+  <div id="messageBox" class="message hidden"></div>
+
+  <!-- Item List -->
+  <ul id="items-list"></ul>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 My Items App — Built by Mofazzal</p>
+  </footer>
+
+  <!-- Script -->
+  <script>
+    const token = localStorage.getItem('token');
+
+    // Hide Add button if not logged in
+    if (!token) {
+      document.getElementById('addBtn').style.display = "none";
+    }
+
+    // Logout button
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      window.location.href = "login.html";
+    });
+
+    function showSpinner() {
+      document.getElementById('spinner').classList.remove('hidden');
+    }
+
+    function hideSpinner() {
+      document.getElementById('spinner').classList.add('hidden');
+    }
+
+    function showMessage(text, type) {
+      const box = document.getElementById('messageBox');
+      box.textContent = text;
+      box.className = `message ${type}`;
+      setTimeout(() => box.classList.add('hidden'), 2000);
+    }
+
+    function loadItems(searchTerm = "") {
+      showSpinner();
+      fetch('/api/items')
+        .then(res => res.json())
+        .then(data => {
+          hideSpinner();
+          const list = document.getElementById('items-list');
+          list.innerHTML = "";
+
+          const filtered = data.filter(item =>
+            item.name.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+
+          filtered.forEach(item => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+              ${item.name} - $${item.price}
+              <a href="details.html?id=${item.id}">View</a>
+              <button class="deleteBtn">Delete</button>
+            `;
+
+            // Hide delete button if not logged in
+            if (!token) {
+              li.querySelector('.deleteBtn').style.display = "none";
+            } else {
+              li.querySelector('.deleteBtn').addEventListener('click', () => deleteItem(item.id));
+            }
+
+            list.appendChild(li);
+          });
+        })
+        .catch(() => {
+          hideSpinner();
+          showMessage("Error loading items", "error");
+        });
+    }
+
+    function deleteItem(id) {
+      fetch(`/api/items/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': localStorage.getItem('token')
+        }
+      })
+      .then(() => {
+        showMessage("Item deleted", "success");
+        loadItems();
+      })
+      .catch(() => showMessage("Failed to delete item", "error"));
+    }
+
+    document.getElementById('addBtn').addEventListener('click', () => {
+      const name = document.getElementById('newName').value;
+      const price = document.getElementById('newPrice').value;
+
+      fetch('/api/items', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': localStorage.getItem('token')
+        },
+        body: JSON.stringify({ name, price })
+      })
+      .then(() => {
+        showMessage("Item added!", "success");
+        loadItems();
+      })
+      .catch(() => showMessage("Failed to add item", "error"));
+    });
+
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      const term = document.getElementById('searchInput').value;
+      loadItems(term);
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+      loadItems();
+    });
+
+    document.getElementById('darkModeBtn').addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+    });
+
+    loadItems();
+  </script>
+
+</body>
+</html>

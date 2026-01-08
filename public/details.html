@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Item Details</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <h2>My Items App</h2>
+    <nav>
+      <a href="index.html">Home</a>
+    </nav>
+    <button id="darkModeBtn">🌙</button>
+  </header>
+
+  <h1>Item Details</h1>
+
+  <!-- Spinner and Message Box -->
+  <div id="spinner" class="spinner hidden"></div>
+  <div id="messageBox" class="message hidden"></div>
+
+  <!-- Details Container -->
+  <div id="details" class="card"></div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>© 2026 My Items App — Built by Mofazzal</p>
+  </footer>
+
+  <script>
+    const token = localStorage.getItem('token');
+
+    function showSpinner() {
+      document.getElementById('spinner').classList.remove('hidden');
+    }
+
+    function hideSpinner() {
+      document.getElementById('spinner').classList.add('hidden');
+    }
+
+    function showMessage(text, type) {
+      const box = document.getElementById('messageBox');
+      box.textContent = text;
+      box.className = `message ${type}`;
+      setTimeout(() => {
+        box.classList.add('hidden');
+      }, 2000);
+    }
+
+    // Get ID from URL
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+
+    // Load item details
+    function loadDetails() {
+      showSpinner();
+      fetch(`/api/items/${id}`)
+        .then(res => res.json())
+        .then(item => {
+          hideSpinner();
+          if (!item) {
+            showMessage("Item not found", "error");
+            return;
+          }
+
+          let html = `
+            <h2>${item.name}</h2>
+            <p><strong>Price:</strong> $${item.price}</p>
+          `;
+
+          // If logged in, show Edit + Delete buttons
+          if (token) {
+            html += `
+              <button id="deleteBtn">Delete</button>
+            `;
+          }
+
+          document.getElementById('details').innerHTML = html;
+
+          // Add delete functionality if logged in
+          if (token) {
+            document.getElementById('deleteBtn').addEventListener('click', deleteItem);
+          }
+        })
+        .catch(() => {
+          hideSpinner();
+          showMessage("Error loading details", "error");
+        });
+    }
+
+    function deleteItem() {
+      fetch(`/api/items/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': token
+        }
+      })
+      .then(() => {
+        showMessage("Item deleted", "success");
+        setTimeout(() => {
+          window.location.href = "index.html";
+        }, 1000);
+      })
+      .catch(() => showMessage("Failed to delete item", "error"));
+    }
+
+    // Dark mode toggle
+    document.getElementById('darkModeBtn').addEventListener('click', () => {
+      document.body.classList.toggle('dark');
+    });
+
+    loadDetails();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>Create Account</h1>
+
+  <input id="username" placeholder="Username">
+  <input id="password" type="password" placeholder="Password">
+  <button id="registerBtn">Register</button>
+
+  <div id="messageBox" class="message hidden"></div>
+
+  <script>
+    function showMessage(text, type) {
+      const box = document.getElementById('messageBox');
+      box.textContent = text;
+      box.className = `message ${type}`;
+      setTimeout(() => box.classList.add('hidden'), 2000);
+    }
+
+    document.getElementById('registerBtn').addEventListener('click', () => {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      })
+      .then(res => res.json())
+      .then(() => showMessage("Registration successful!", "success"))
+      .catch(() => showMessage("Registration failed", "error"));
+    });
+  </script>
+
+</body>
+</html>
